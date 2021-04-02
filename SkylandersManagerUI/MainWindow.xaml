@@ -1,0 +1,13 @@
+﻿<Window x:Class="SkylandersManagerUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SkylandersManagerUI"
+        mc:Ignorable="d"
+        Title="Skylanders Manager" Height="800" Width="1200">
+    <Grid>
+        <Button Content="Start" Margin="900,598,167,145" Click="Button_Click"/>
+
+    </Grid>
+</Window>
