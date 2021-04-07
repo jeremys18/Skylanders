@@ -1,132 +1,101 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace SkylandersManagerUI
 {
     internal partial class DeviceManagementDeclarations
 	{
-        '''<remarks>
-	''' API declarations relating to device management (SetupDixxx and 
-	''' RegisterDeviceNotification functions).
-	''' Constants are from dbt.h and setupapi.h.
-	'''</remarks>
+        ///<remarks>
+		/// API declarations relating to device management (SetupDixxx and 
+		/// RegisterDeviceNotification functions).
+		/// constants are from dbt.h and setupapi.h.
+		///</remarks>
+		internal const int DBT_DEVICEARRIVAL = 0x8000;
+		internal const int DBT_DEVICEREMOVECOMPLETE = 0x8004;
+		internal const int DBT_DEVTYP_DEVICEINTERFACE = 5;
+		internal const int DBT_DEVTYP_HANDLE = 6;
+		internal const int DEVICE_NOTIFY_ALL_INTERFACE_CLASSES = 4;
+		internal const int DEVICE_NOTIFY_SERVICE_HANDLE = 1;
+		internal const int DEVICE_NOTIFY_WINDOW_HANDLE = 0;
+		internal const int WM_DEVICECHANGE = 0x219;
+		internal const int DIGCF_PRESENT = 2;
+		internal const int DIGCF_DEVICEINTERFACE = 0x10;
 
-	Friend Const DBT_DEVICEARRIVAL As Int32 = &H8000
-	Friend Const DBT_DEVICEREMOVECOMPLETE As Int32 = &H8004
-	Friend Const DBT_DEVTYP_DEVICEINTERFACE As Int32 = 5
-	Friend Const DBT_DEVTYP_HANDLE As Int32 = 6
-	Friend Const DEVICE_NOTIFY_ALL_INTERFACE_CLASSES As Int32 = 4
-	Friend Const DEVICE_NOTIFY_SERVICE_HANDLE As Int32 = 1
-	Friend Const DEVICE_NOTIFY_WINDOW_HANDLE As Int32 = 0
-	Friend Const WM_DEVICECHANGE As Int32 = &H219
+		// Two declarations for the DEV_BROADCAST_DEVICEINTERFACE structure.
+		// Use this one in the call to RegisterDeviceNotification() and
+		// in checking dbch_devicetype in a DEV_BROADCAST_HDR structure:
+		[StructLayout(LayoutKind.Sequential)]
+		internal class DEV_BROADCAST_DEVICEINTERFACE
+		{
+			internal int dbcc_size;
+			internal int dbcc_devicetype;
+			internal int dbcc_reserved;
+			internal Guid dbcc_classguid;
+			internal short dbcc_name;
+		}
 
-	Friend Const DIGCF_PRESENT As Int32 = 2
-	Friend Const DIGCF_DEVICEINTERFACE As Int32 = &H10
+		// Use this to read the dbcc_name string and classguid:
+		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+		internal class DEV_BROADCAST_DEVICEINTERFACE_1
+		{
+			internal int dbcc_size;
+			internal int dbcc_devicetype;
+			internal int dbcc_reserved;
+			[MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.U1, SizeConst = 16)]
+			internal byte[] dbcc_classguid;
+			[MarshalAs(UnmanagedType.ByValArray, SizeConst = 255)]
+			internal char[] dbcc_name;
+		}
 
-	'Two declarations for the DEV_BROADCAST_DEVICEINTERFACE structure.
+		[StructLayout(LayoutKind.Sequential)]
+		internal class DEV_BROADCAST_HDR
+		{
+			internal int dbch_size;
+			internal int dbch_devicetype;
+			internal int dbch_reserved;
+		}
 
-	'Use this one in the call to RegisterDeviceNotification() and
-	'in checking dbch_devicetype in a DEV_BROADCAST_HDR structure:
+		internal struct SP_DEVICE_INTERFACE_DATA
+		{
+			internal int cbSize;
+			internal Guid InterfaceClassGuid;
+			internal int Flags;
+			internal IntPtr Reserved;
+		}
 
-	<StructLayout(LayoutKind.Sequential)> _
-	Friend Class DEV_BROADCAST_DEVICEINTERFACE
-		Friend dbcc_size As Int32
-		Friend dbcc_devicetype As Int32
-		Friend dbcc_reserved As Int32
-		Friend dbcc_classguid As Guid
-		Friend dbcc_name As Int16
-	End Class
+		internal struct SP_DEVICE_INTERFACE_DETAIL_DATA
+		{
+			internal int cbSize;
+			internal string DevicePath;
+		}
 
-	'Use this to read the dbcc_name string and classguid:
+		internal struct SP_DEVINFO_DATA
+		{
+			internal int cbSize;
+			internal Guid ClassGuid;
+			internal int DevInst;
+			internal int Reserved;
+		}
 
-	<StructLayout(LayoutKind.Sequential, CharSet:=CharSet.Auto)> _
-	   Friend Class DEV_BROADCAST_DEVICEINTERFACE_1
-		Friend dbcc_size As Int32
-		Friend dbcc_devicetype As Int32
-		Friend dbcc_reserved As Int32
-		<MarshalAs(UnmanagedType.ByValArray, ArraySubType:=UnmanagedType.U1, SizeConst:=16)> _
-		Friend dbcc_classguid() As Byte
-		<MarshalAs(UnmanagedType.ByValArray, sizeconst:=255)> _
-		Friend dbcc_name() As Char
-	End Class
+		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+		static extern IntPtr RegisterDeviceNotification(IntPtr hRecipient, IntPtr NotificationFilter, int Flags);
 
-	<StructLayout(LayoutKind.Sequential)> _
-	Friend Class DEV_BROADCAST_HDR
-		Friend dbch_size As Int32
-		Friend dbch_devicetype As Int32
-		Friend dbch_reserved As Int32
-	End Class
+		[DllImport("setupapi.dll", SetLastError = true)]
+		static extern int SetupDiCreateDeviceInfoList(ref Guid ClassGuid, int hwndParent);
 
-	Friend Structure SP_DEVICE_INTERFACE_DATA
-		Friend cbSize As Int32
-		Friend InterfaceClassGuid As Guid
-		Friend Flags As Int32
-		Friend Reserved As IntPtr
-	End Structure
+		[DllImport("setupapi.dll", SetLastError = true)]
+		static extern int SetupDiDestroyDeviceInfoList(IntPtr DeviceInfoSet);
 
-	Friend Structure SP_DEVICE_INTERFACE_DETAIL_DATA
-		Friend cbSize As Int32
-		Friend DevicePath As String
-	End Structure
+		[DllImport("setupapi.dll", SetLastError = true)]
+		static extern bool SetupDiEnumDeviceInterfaces(IntPtr DeviceInfoSet, IntPtr DeviceInfoData, Guid InterfaceClassGuid, int MemberIndex, ref SP_DEVICE_INTERFACE_DATA DeviceInterfaceData);
 
-	Friend Structure SP_DEVINFO_DATA
-		Friend cbSize As Int32
-		Friend ClassGuid As Guid
-		Friend DevInst As Int32
-		Friend Reserved As Int32
-	End Structure
+		[DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
+		static extern IntPtr SetupDiGetClassDevs(ref Guid ClassGuid, IntPtr Enumerator, IntPtr hwndParent, int Flags);
 
-	<DllImport("user32.dll", CharSet:=CharSet.Auto, SetLastError:=True)> Shared Function RegisterDeviceNotification _
-	 (ByVal hRecipient As IntPtr,
-	 ByVal NotificationFilter As IntPtr,
-	 ByVal Flags As Int32) _
-	 As IntPtr
-	End Function
+		[DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
+		static extern bool SetupDiGetDeviceInterfaceDetail(IntPtr DeviceInfoSet, ref SP_DEVICE_INTERFACE_DATA DeviceInterfaceData, IntPtr DeviceInterfaceDetailData, int DeviceInterfaceDetailDataSize, ref int RequiredSize, IntPtr DeviceInfoData);
 
-	<DllImport("setupapi.dll", SetLastError:=True)> Shared Function SetupDiCreateDeviceInfoList _
-	 (ByRef ClassGuid As Guid,
-	 ByVal hwndParent As Int32) _
-	 As Int32
-	End Function
-
-	<DllImport("setupapi.dll", SetLastError:=True)> Shared Function SetupDiDestroyDeviceInfoList _
-	 (ByVal DeviceInfoSet As IntPtr) _
-	 As Int32
-	End Function
-
-	<DllImport("setupapi.dll", SetLastError:=True)> Shared Function SetupDiEnumDeviceInterfaces _
-	 (ByVal DeviceInfoSet As IntPtr,
-	 ByVal DeviceInfoData As IntPtr,
-	 ByRef InterfaceClassGuid As Guid,
-	 ByVal MemberIndex As Int32,
-	 ByRef DeviceInterfaceData As SP_DEVICE_INTERFACE_DATA) _
-	 As Boolean
-	End Function
-
-	<DllImport("setupapi.dll", CharSet:=CharSet.Auto, SetLastError:=True)> Shared Function SetupDiGetClassDevs _
-	  (ByRef ClassGuid As Guid,
-	  ByVal Enumerator As IntPtr,
-	  ByVal hwndParent As IntPtr,
-	  ByVal Flags As Int32) _
-	 As IntPtr
-	End Function
-
-	<DllImport("setupapi.dll", CharSet:=CharSet.Auto, SetLastError:=True)> Shared Function SetupDiGetDeviceInterfaceDetail _
-	 (ByVal DeviceInfoSet As IntPtr, _
-	 ByRef DeviceInterfaceData As SP_DEVICE_INTERFACE_DATA, _
-	 ByVal DeviceInterfaceDetailData As IntPtr, _
-	 ByVal DeviceInterfaceDetailDataSize As Int32, _
-	 ByRef RequiredSize As Int32, _
-	 ByVal DeviceInfoData As IntPtr) _
-	 As Boolean
-	End Function
-
-	<DllImport("user32.dll", SetLastError:=True)> Shared Function UnregisterDeviceNotification _
-	 (ByVal Handle As IntPtr) _
-	As Boolean
-	End Function
+		[DllImport("user32.dll", SetLastError = true)]
+		static extern bool UnregisterDeviceNotification(IntPtr Handle);
 	}
 }

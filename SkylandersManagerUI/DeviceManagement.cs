@@ -250,142 +250,120 @@ namespace SkylandersManagerUI
 			}
 		}
 
-	''' <summary>
-	''' Requests to receive a notification when a device is attached or removed.
-	''' </summary>
-	''' 
-	''' <param name="devicePathName"> handle to a device. </param>
-	''' <param name="formHandle"> handle to the window that will receive device events. </param>
-	''' <param name="classGuid"> device interface GUID. </param>
-	''' <param name="deviceNotificationHandle"> returned device notification handle. </param>
-	''' 
-	''' <returns>
-	''' True on success.
-	''' </returns>
-	''' 
-	Friend Function RegisterForDeviceNotifications _
-	 (ByVal devicePathName As String, _
-	 ByVal formHandle As IntPtr, _
-	 ByVal classGuid As Guid, _
-	 ByRef deviceNotificationHandle As IntPtr) _
-	 As Boolean
+		/// <summary>
+		/// Requests to receive a notification when a device is attached or removed.
+		/// </summary>
+		/// <param name="devicePathName">handle to a device.</param>
+		/// <param name="formHandle">handle to the window that will receive device events</param>
+		/// <param name="classGuid">device interface GUID</param>
+		/// <param name="deviceNotificationHandle">returned device notification handle</param>
+		/// <returns>true on success</returns>
+		static bool RegisterForDeviceNotifications(String devicePathName, IntPtr formHandle, Guid classGuid, ref IntPtr deviceNotificationHandle)
+		{
+			// A DEV_BROADCAST_DEVICEINTERFACE header holds information about the request.
 
-		'A DEV_BROADCAST_DEVICEINTERFACE header holds information about the request.
+			var devBroadcastDeviceInterface = new DEV_BROADCAST_DEVICEINTERFACE();
+			IntPtr devBroadcastDeviceInterfaceBuffer;
+			int size;
 
-		Dim devBroadcastDeviceInterface As DEV_BROADCAST_DEVICEINTERFACE = _
-		 New DEV_BROADCAST_DEVICEINTERFACE()
-		Dim devBroadcastDeviceInterfaceBuffer As IntPtr
-		Dim size As Int32
+			try
+			{
+				// Set the parameters in the DEV_BROADCAST_DEVICEINTERFACE structure.
+				// Set the size.
+				size = Marshal.SizeOf(devBroadcastDeviceInterface);
+				devBroadcastDeviceInterface.dbcc_size = size;
 
-		Try
-			'Set the parameters in the DEV_BROADCAST_DEVICEINTERFACE structure.
+				// Request to receive notifications about a class of devices.
+				devBroadcastDeviceInterface.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
+				devBroadcastDeviceInterface.dbcc_reserved = 0;
 
-			'Set the size.
+				// Specify the interface class to receive notifications about.
+				devBroadcastDeviceInterface.dbcc_classguid = classGuid;
 
-			size = Marshal.SizeOf(devBroadcastDeviceInterface)
-			devBroadcastDeviceInterface.dbcc_size = size
+				// Allocate memory for the buffer that holds the DEV_BROADCAST_DEVICEINTERFACE structure.
+				devBroadcastDeviceInterfaceBuffer = Marshal.AllocHGlobal(size);
 
-			'Request to receive notifications about a class of devices.
+				// Copy the DEV_BROADCAST_DEVICEINTERFACE structure to the buffer.
+				// Set fDeleteOld True to prevent memory leaks.
+				Marshal.StructureToPtr(devBroadcastDeviceInterface, devBroadcastDeviceInterfaceBuffer, true);
 
-			devBroadcastDeviceInterface.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE
+				/*
+				 API function
 
-			devBroadcastDeviceInterface.dbcc_reserved = 0
+				 summary
+				 Request to receive notification messages when a device in an interface class
+				 is attached or removed.
 
-			'Specify the interface class to receive notifications about.
+				 parameters 
+				 Handle to the window that will receive device events.
+				 Pointer to a DEV_BROADCAST_DEVICEINTERFACE to specify the type of 
+				 device to send notifications for.
+				 DEVICE_NOTIFY_WINDOW_HANDLE indicates the handle is a window handle.
 
-			devBroadcastDeviceInterface.dbcc_classguid = classGuid
+				 Returns
+				 Device notification handle or NULL on failure.
+				*/
 
-			'Allocate memory for the buffer that holds the DEV_BROADCAST_DEVICEINTERFACE structure.
+				deviceNotificationHandle = RegisterDeviceNotification(formHandle, devBroadcastDeviceInterfaceBuffer, DEVICE_NOTIFY_WINDOW_HANDLE);
 
-			devBroadcastDeviceInterfaceBuffer = Marshal.AllocHGlobal(size)
-
-			'Copy the DEV_BROADCAST_DEVICEINTERFACE structure to the buffer.
-			'Set fDeleteOld True to prevent memory leaks.
-
-			Marshal.StructureToPtr _
-			 (devBroadcastDeviceInterface, devBroadcastDeviceInterfaceBuffer, True)
-
-			'***
-			' API function
-
-			' summary
-			' Request to receive notification messages when a device in an interface class
-			' is attached or removed.
-
-			' parameters 
-			' Handle to the window that will receive device events.
-			' Pointer to a DEV_BROADCAST_DEVICEINTERFACE to specify the type of 
-			' device to send notifications for.
-			' DEVICE_NOTIFY_WINDOW_HANDLE indicates the handle is a window handle.
-
-			' Returns
-			' Device notification handle or NULL on failure.
-			'***
-
-			deviceNotificationHandle = RegisterDeviceNotification _
-			 (formHandle, _
-			 devBroadcastDeviceInterfaceBuffer, _
-			 DEVICE_NOTIFY_WINDOW_HANDLE)
-
-			'Marshal data from the unmanaged block DevBroadcastDeviceInterfaceBuffer to
-			'the managed object DevBroadcastDeviceInterface
-
-			Marshal.PtrToStructure(devBroadcastDeviceInterfaceBuffer, devBroadcastDeviceInterface)
+				// Marshal data from the unmanaged block DevBroadcastDeviceInterfaceBuffer to
+				// the managed object DevBroadcastDeviceInterface
+				Marshal.PtrToStructure(devBroadcastDeviceInterfaceBuffer, devBroadcastDeviceInterface);
 
 
 
-			If (deviceNotificationHandle.ToInt32 = IntPtr.Zero.ToInt32) Then
-				Return False
-			Else
-				Return True
-			End If
+				if (deviceNotificationHandle.ToInt32 = IntPtr.Zero.ToInt32)
+				{
+					return false;
+				}
+				else
+				{
+					return true;
+				}
+			}
+			catch (Exception ex)
+			{
+				throw;
+			}
+			finally
+			{
+				// Free the memory allocated previously by AllocHGlobal.
+				if (devBroadcastDeviceInterfaceBuffer != IntPtr.Zero)
+				{
+					Marshal.FreeHGlobal(devBroadcastDeviceInterfaceBuffer);
+				}
+			}
+		}
 
-		Catch ex As Exception
-			Throw
+		/// <summary>
+		/// Requests to stop receiving notification messages when a device in an
+		/// interface class is attached or removed.
+		/// </summary>
+		/// <param name="deviceNotificationHandle">handle returned previously by RegisterDeviceNotification.</param>
+		static void StopReceivingDeviceNotifications(IntPtr deviceNotificationHandle)
+		{
+			try
+			{
+				/*
+				 API function
 
-		Finally
-			'Free the memory allocated previously by AllocHGlobal.
+				 summary
+				 Stop receiving notification messages.
 
-			If Not(devBroadcastDeviceInterfaceBuffer = IntPtr.Zero) Then
-			   Marshal.FreeHGlobal(devBroadcastDeviceInterfaceBuffer)
-			End If
+				 parameters
+				 Handle returned previously by RegisterDeviceNotification.  
 
-		End Try
-	End Function
+				 returns
+				 True on success.
+				*/
 
-	''' <summary>
-	''' Requests to stop receiving notification messages when a device in an
-	''' interface class is attached or removed.
-	''' </summary>
-	''' 
-	''' <param name="deviceNotificationHandle"> handle returned previously by
-	''' RegisterDeviceNotification. </param>
-
-	Friend Sub StopReceivingDeviceNotifications _
-	 (ByVal deviceNotificationHandle As IntPtr)
-
-		Try
-			'***
-			' API function
-
-			' summary
-			' Stop receiving notification messages.
-
-			' parameters
-			' Handle returned previously by RegisterDeviceNotification.  
-
-			' returns
-			' True on success.
-			'***
-
-			' Ignore failures.
-
-			UnregisterDeviceNotification(deviceNotificationHandle)
-
-		Catch ex As Exception
-			Throw
-		End Try
-
-	End Sub
+				// Ignore failures.
+				UnregisterDeviceNotification(deviceNotificationHandle);
+			}
+			catch (Exception ex)
+			{
+				throw;
+			}
+		}
 	}
 }
